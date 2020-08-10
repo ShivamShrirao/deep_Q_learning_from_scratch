@@ -1,0 +1,3 @@
+WIDTH = 80
+HEIGHT = 80
+NFRAMES = 4
