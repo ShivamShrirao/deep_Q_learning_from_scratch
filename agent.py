@@ -30,11 +30,11 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 def state_to_gpu(state):
 	state = state.transpose(0,2,3,1)
 	state_gpu = cp.asarray(state).astype(cp.float32)
-	return state_gpu
+	return state_gpu/255
 
 
 class Agent:
-	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=9e-5):
+	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=1e-5):
 		self.epsilon = epsilon
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
@@ -53,6 +53,19 @@ class Agent:
 			state = np.expand_dims(state, axis=0)
 			state = state_to_gpu(state)
 			out = self.model.predict(state)
-			return self.actions[np.argmax(out[0].get())]
+			return self.actions[cp.argmax(out[0]).item()]
+
+	def train(self, D_exp, gamma=0.99):
+		curr_state, actions, rewards, next_state, had_done = D_exp.sample_random(BATCH_SIZE)
+		curr_gpu = state_to_gpu(curr_state)
+		Qar = self.model.predict(curr_gpu)							# predict reward for current state
+		
+		Qar_next = self.model.predict(state_to_gpu(next_state))		# predict reward for next state
+		Qr_next  = Qar_next.max(axis=1)								# get max rewards (greedy)
+		Qr_next  = Qr_next * cp.asarray(had_done)					# zero out next rewards for terminal
+		Y_argm = cp.asarray(rewards) + gamma*Qr_next
+
+		Qar[np.arange(len(curr_state)), actions] = Y_argm
+		self.model.train_on_batch(curr_gpu, Qar)
 
 	
