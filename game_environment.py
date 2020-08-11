@@ -20,13 +20,19 @@ def preprocess_observation(observation):
 	return state
 
 
-def make_labels(D_exp, agt, gamma=1):
+def train(D_exp, agt, gamma=1):
+	# if D_exp.len > BATCH_SIZE
 	curr_state, actions, rewards, next_state, had_done = D_exp.sample_random(min(D_exp.len, BATCH_SIZE))
-	Qar = agt.model.predict(state_to_gpu(next_state))		# predict reward for next state
-	Qr  = Qar.max(axis=1)									# get max rewards (greedy)
-	Qr  = Qr * had_done										# zero out next rewards for terminal
-	Y_t = cp.asarray(rewards[:,None]) + gamma*Qr[:,None]
-	return Y_t
+	curr_gpu = state_to_gpu(curr_state)
+	Qar = agt.model.predict(curr_gpu)							# predict reward for current state
+	
+	Qar_next = agt.model.predict(state_to_gpu(next_state))		# predict reward for next state
+	Qr_next  = Qar_next.max(axis=1)								# get max rewards (greedy)
+	Qr_next  = Qr_next * cp.asarray(had_done)					# zero out next rewards for terminal
+	Y_argm = cp.asarray(rewards) + gamma*Qr_next
+
+	Qar[np.arange(len(curr_state)), actions] = Y_argm
+	agt.model.train_on_batch(curr_gpu, Qar)
 
 
 for i_episode in range(2):
@@ -51,9 +57,8 @@ for i_episode in range(2):
 
 		D_exp.store_transition(stacked_state, action, reward, stacked_next, done)
 
-		Y_t = make_labels(D_exp, agt)	
-
-
+		train(D_exp, agt)	
+		
 
 		if done:
 			print("Episode finished after {} timesteps".format(t+1))
