@@ -36,7 +36,7 @@ class Agent:
 		self.epsilon = epsilon
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
-		self.actions = np.asarray(actions, dtype=np.uint8)
+		self.actions = actions
 		self.model = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.model.summary()
 
@@ -54,7 +54,7 @@ class Agent:
 			return self.actions[cp.argmax(out[0]).item()]
 
 	def train(self, D_exp, gamma=0.99):
-		curr_state, actions, rewards, next_state, had_done = D_exp.sample_random(BATCH_SIZE)
+		curr_state, action_idxs, rewards, next_state, had_done = D_exp.sample_random(BATCH_SIZE)
 		curr_gpu = state_to_gpu(curr_state)
 		Qar = self.model.predict(curr_gpu)							# predict reward for current state
 		
@@ -63,7 +63,7 @@ class Agent:
 		Qr_next  = Qr_next * cp.asarray(had_done)					# zero out next rewards for terminal
 		Y_argm   = cp.asarray(rewards) + gamma*Qr_next
 
-		Qar[np.arange(len(curr_state)), actions] = Y_argm
+		Qar[np.arange(len(curr_state)), action_idxs] = Y_argm
 		self.model.train_on_batch(curr_gpu, Qar)
 
 	

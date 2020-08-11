@@ -6,12 +6,12 @@ from settings import *
 
 def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model=tf.keras.models.Sequential()
-	model.add(tf.keras.layers.Conv2D(num_kernels=32, kernel_size=3, stride=(2, 2), activation='relu', input_shape=input_shape))
+	model.add(tf.keras.layers.Conv2D(32, kernel_size=3, strides=(2, 2), padding='same', activation='relu', input_shape=input_shape))
 	# model.add(tf.keras.layers.Dropout(0.1))
-	model.add(tf.keras.layers.Conv2D(num_kernels=64, kernel_size=3, stride=(2, 2), activation='relu'))
+	model.add(tf.keras.layers.Conv2D(64, kernel_size=3, strides=(2, 2), padding='same', activation='relu'))
 	# model.add(tf.keras.layers.Dropout(0.2))
-	model.add(tf.keras.layers.Conv2D(num_kernels=128, kernel_size=3, stride=(2, 2), activation='relu'))
-	# model.add(tf.keras.layers.Conv2D(num_kernels=256, kernel_size=3, stride=(2, 2), activation='relu'))
+	model.add(tf.keras.layers.Conv2D(128, kernel_size=3, strides=(2, 2), padding='same', activation='relu'))
+	# model.add(tf.keras.layers.Conv2D(256, kernel_size=3, strides=(2, 2), padding='same', activation='relu'))
 	model.add(tf.keras.layers.Flatten())
 	# model.add(tf.keras.layers.Dropout(0.3))
 	model.add(tf.keras.layers.Dense(256, activation='relu'))
@@ -29,7 +29,7 @@ class Agent:
 		self.epsilon = epsilon
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
-		self.actions = np.asarray(actions, dtype=np.uint8)
+		self.actions = actions
 		self.model = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.model.summary()
 
@@ -47,16 +47,16 @@ class Agent:
 			return self.actions[np.argmax(out[0])]
 
 	def train(self, D_exp, gamma=0.99):
-		curr_state, actions, rewards, next_state, had_done = D_exp.sample_random(BATCH_SIZE)
+		curr_state, action_idxs, rewards, next_state, not_done = D_exp.sample_random(BATCH_SIZE)
 		curr_gpu = state_to_gpu(curr_state)
 		Qar = self.model.predict(curr_gpu)							# predict reward for current state
 		
 		Qar_next = self.model.predict(state_to_gpu(next_state))		# predict reward for next state
 		Qr_next  = Qar_next.max(axis=1)								# get max rewards (greedy)
-		Qr_next  = Qr_next * np.asarray(had_done)					# zero out next rewards for terminal
+		Qr_next  = Qr_next * np.asarray(not_done)					# zero out next rewards for terminal
 		Y_argm   = np.asarray(rewards) + gamma*Qr_next
 
-		Qar[np.arange(len(curr_state)), actions] = Y_argm
+		Qar[np.arange(len(curr_state)), action_idxs] = Y_argm
 		self.model.train_on_batch(curr_gpu, Qar)
 
 	
