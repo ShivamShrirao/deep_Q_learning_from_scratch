@@ -22,7 +22,7 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 
 
 def state_to_gpu(state):
-	return np.asarray(state, dtype=np.float32)/255
+	return np.asarray(state, dtype=np.float32)/127.5 - 1
 
 class Agent:
 	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=1e-5):
