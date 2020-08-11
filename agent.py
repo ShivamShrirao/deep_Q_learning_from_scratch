@@ -14,14 +14,14 @@ from settings import *
 def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model=Sequential()
 	model.add(Conv2D(num_kernels=32, kernel_size=3, stride=(2, 2), activation=functions.relu, input_shape=input_shape))
-	# model.add(BatchNormalization())
+	model.add(BatchNormalization())
 	model.add(Conv2D(num_kernels=64, kernel_size=3, stride=(2, 2), activation=functions.relu))
-	# model.add(BatchNormalization())
+	model.add(BatchNormalization())
 	model.add(Conv2D(num_kernels=128, kernel_size=3, stride=(2, 2), activation=functions.relu))
-	# model.add(BatchNormalization())
+	model.add(BatchNormalization())
 	model.add(Flatten())
 	model.add(Dense(256, activation=functions.relu))
-	model.add(Dense(no_of_actions, activation=functions.echo))
+	model.add(Dense(no_of_actions, activation=functions.tanh))
 
 	model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.001)
 	return model
