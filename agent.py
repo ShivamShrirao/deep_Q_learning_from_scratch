@@ -17,18 +17,21 @@ class Agent:
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
 		self.actions = actions
-		self.model = self.get_model(input_shape=(WIDTH,HEIGHT,NFRAMES), no_of_actions=len(self.actions))
+		self.model = self.get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
+		self.model.summary()
 
 
 	def get_action(self, state):
+		if self.epsilon > self.min_epsilon:
+			self.epsilon-= self.eps_decay
 		if np.random.uniform() <= self.epsilon: # random action with epsilon greedy
 			return np.random.choice(self.actions)
 		else:
 			out = self.model.predict(state)
-			return actions[np.argmax(out[0])]
+			return self.actions[np.argmax(out[0].get())]
 
 	@staticmethod
-	def get_model(input_shape=(WIDTH,HEIGHT,NFRAMES), no_of_actions=3):
+	def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 		model=Sequential()
 		model.add(Conv2D(num_kernels=32, kernel_size=3, stride=(2, 2), activation=functions.relu, input_shape=input_shape))
 		model.add(Dropout(0.1))
@@ -42,3 +45,10 @@ class Agent:
 
 		model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.01)
 		return model
+
+	@staticmethod
+	def state_to_gpu(state):
+		state = state.transpose(1,2,0)
+		state = np.expand_dims(state, axis=0)
+		state_gpu = cp.asarray(state).astype(cp.float32)
+		return state_gpu
