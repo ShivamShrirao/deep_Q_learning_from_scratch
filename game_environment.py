@@ -10,7 +10,7 @@ from experience import *
 env = gym.make('Pong-v0')
 
 agt = Agent(actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=9e-5)
-D_exp = ReplayMemory(capacity=10000)
+D_exp = ReplayMemory(capacity=100000)
 
 
 def preprocess_observation(observation):
@@ -38,7 +38,7 @@ for i_episode in range(2):
 		observation = next_observation
 
 		state = preprocess_observation(observation)
-		stacked_next[:3] = stacked_next[1:]
+		stacked_next[:3] = stacked_next[1:]			# REMOVE OVERLAPPED
 		stacked_next[3] = state
 
 		D_exp.store_transition(stacked_state, action, reward, stacked_next, done)
@@ -49,7 +49,7 @@ for i_episode in range(2):
 		if done:
 			break
 		print('\r', t, time.time()-start, end='  ')
-	print(f"Episode finished after {t+1} timesteps, Score: {ep_score}, Epsilon: {agt.epsilon}")
+	print(f"\nEpisode finished after {t+1} timesteps, Score: {ep_score}, Epsilon: {agt.epsilon}")
 	agt.model.save_weights("model.w8s")
 
 env.close()
