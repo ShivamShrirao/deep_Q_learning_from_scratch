@@ -9,7 +9,7 @@ from experience import *
 
 env = gym.make('Pong-v0')
 
-ag = Agent(actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=9e-5)
+agt = Agent(actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=9e-5)
 D_exp = ReplayMemory(capacity=10000)
 
 
@@ -18,6 +18,15 @@ def preprocess_observation(observation):
 	state = cv2.cvtColor(state, cv2.COLOR_RGB2GRAY)
 	state = cv2.resize(state, (HEIGHT,WIDTH), interpolation = cv2.INTER_NEAREST)
 	return state
+
+
+def make_labels(D_exp, agt, gamma=1):
+	curr_state, actions, rewards, next_state, had_done = D_exp.sample_random(min(D_exp.len, BATCH_SIZE))
+	Qar = agt.model.predict(state_to_gpu(next_state))		# predict reward for next state
+	Qr  = Qar.max(axis=1)									# get max rewards (greedy)
+	Qr  = Qr * had_done										# zero out next rewards for terminal
+	Y_t = cp.asarray(rewards[:,None]) + gamma*Qr[:,None]
+	return Y_t
 
 
 for i_episode in range(2):
@@ -31,7 +40,7 @@ for i_episode in range(2):
 	for t in range(10000):
 		env.render()
 		stacked_state[:] = stacked_next			# copy values of now current state
-		action = ag.get_action(ag.state_to_gpu(stacked_state))
+		action = agt.get_action(stacked_state)
 		next_observation, reward, done, info = env.step(action)
 		ep_score += reward
 		observation = next_observation
@@ -42,7 +51,9 @@ for i_episode in range(2):
 
 		D_exp.store_transition(stacked_state, action, reward, stacked_next, done)
 
-		curr_state, action, reward, next_state, had_done = D_exp.sample_random(8)
+		Y_t = make_labels(D_exp, agt)	
+
+
 
 		if done:
 			print("Episode finished after {} timesteps".format(t+1))

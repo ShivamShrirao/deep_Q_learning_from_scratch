@@ -7,8 +7,9 @@ class ReplayMemory:
 	def __init__(self, capacity=10000):
 		self.capacity = capacity
 		self.current_state = np.zeros((self.capacity, NFRAMES, HEIGHT, WIDTH), dtype=np.uint8)
+		print(self.current_state.nbytes/1024/1024)
 		self.action = np.zeros(self.capacity, dtype=np.uint8)
-		self.reward = np.zeros(self.capacity, dtype=np.uint8)
+		self.reward = np.zeros(self.capacity, dtype=np.float32)
 		self.next_state = np.zeros_like(self.current_state)
 		self.done = np.zeros(self.capacity, dtype=np.bool)
 		self.idx = 0
