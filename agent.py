@@ -63,7 +63,7 @@ class Agent:
 		Qar_next = self.model.predict(state_to_gpu(next_state))		# predict reward for next state
 		Qr_next  = Qar_next.max(axis=1)								# get max rewards (greedy)
 		Qr_next  = Qr_next * cp.asarray(had_done)					# zero out next rewards for terminal
-		Y_argm = cp.asarray(rewards) + gamma*Qr_next
+		Y_argm   = cp.asarray(rewards) + gamma*Qr_next
 
 		Qar[np.arange(len(curr_state)), actions] = Y_argm
 		self.model.train_on_batch(curr_gpu, Qar)

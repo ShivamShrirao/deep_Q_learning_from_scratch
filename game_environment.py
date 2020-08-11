@@ -48,7 +48,7 @@ for i_episode in range(2):
 		
 		if done:
 			break
-		print(time.time()-start)
+		print('\r', t, time.time()-start, end='  ')
 	print(f"Episode finished after {t+1} timesteps, Score: {ep_score}, Epsilon: {agt.epsilon}")
 	agt.model.save_weights("model.w8s")
 
