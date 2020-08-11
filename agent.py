@@ -29,17 +29,14 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 
 
 def state_to_gpu(state):
-	state = state.transpose(0,2,3,1)
-	state_gpu = cp.asarray(state).astype(cp.float32)
-	return state_gpu/255
-
+	return cp.asarray(state, dtype=cp.float32)/255
 
 class Agent:
 	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=1e-5):
 		self.epsilon = epsilon
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
-		self.actions = actions
+		self.actions = np.asarray(actions, dtype=np.uint8)
 		self.model = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.model.summary()
 
@@ -51,8 +48,8 @@ class Agent:
 		if np.random.uniform() <= self.epsilon: # random action with epsilon greedy
 			return np.random.choice(self.actions)
 		else:
-			state = np.expand_dims(state, axis=0)
 			state = state_to_gpu(state)
+			state = cp.expand_dims(state, axis=0)
 			out = self.model.predict(state)
 			return self.actions[cp.argmax(out[0]).item()]
 
