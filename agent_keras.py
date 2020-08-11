@@ -25,7 +25,7 @@ def state_to_gpu(state):
 	return np.asarray(state, dtype=np.float32)/127.5 - 1
 
 class Agent:
-	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=1e-5):
+	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=1e-6):
 		self.epsilon = epsilon
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
@@ -46,7 +46,7 @@ class Agent:
 			out = self.model.predict(state)
 			return self.actions[np.argmax(out[0])]
 
-	def train(self, D_exp, gamma=0.99):
+	def train(self, D_exp, batch_size=BATCH_SIZE, gamma=0.99):
 		curr_state, action_idxs, rewards, next_state, not_done = D_exp.sample_random(BATCH_SIZE)
 		curr_gpu = state_to_gpu(curr_state)
 		Qar = self.model.predict(curr_gpu)							# predict reward for current state
