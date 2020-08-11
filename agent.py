@@ -18,7 +18,7 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model.add(Conv2D(num_kernels=64, kernel_size=3, stride=(2, 2), activation=functions.relu))
 	# model.add(Dropout(0.2))
 	model.add(Conv2D(num_kernels=128, kernel_size=3, stride=(2, 2), activation=functions.relu))
-	model.add(Conv2D(num_kernels=256, kernel_size=3, stride=(2, 2), activation=functions.relu))
+	# model.add(Conv2D(num_kernels=256, kernel_size=3, stride=(2, 2), activation=functions.relu))
 	model.add(Flatten())
 	# model.add(Dropout(0.3))
 	model.add(Dense(256, activation=functions.relu))
