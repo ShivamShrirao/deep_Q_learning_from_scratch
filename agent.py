@@ -7,7 +7,6 @@ from nnet_gpu import optimizers
 from nnet_gpu import functions
 import numpy as np
 import cupy as cp
-import io
 
 from settings import *
 
@@ -42,12 +41,12 @@ class Agent:
 		self.model = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.target = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.model.summary()
+		self.update_target()
 
-	def run(self, state):
+	def predict(self, state):
 		state = state_to_gpu(state)
 		state = cp.expand_dims(state, axis=0)
 		return self.model.predict(state)
-
 
 	def get_action(self, state):
 		if self.epsilon > self.min_epsilon:
@@ -56,28 +55,23 @@ class Agent:
 		if np.random.uniform() <= self.epsilon: # random action with epsilon greedy
 			return np.random.choice(self.actions)
 		else:
-			out = self.run(state)
+			out = self.predict(state)
 			return self.actions[cp.argmax(out[0]).item()]
-
 
 	def train(self, D_exp, batch_size=BATCH_SIZE, gamma=0.95):
 		curr_state, action_idxs, rewards, next_state, not_done = D_exp.sample_random(batch_size)
+		action_idxs_gpu = cp.asarray(action_idxs)
 		curr_gpu = state_to_gpu(curr_state)
-		Y_t = self.target.predict(curr_gpu)								# predict reward for current state
+		Q_curr   = self.model.forward(curr_gpu)							# predict reward for current state
 		
 		Qar_next = self.target.predict(state_to_gpu(next_state))		# predict reward for next state
 		Qr_next  = Qar_next.max(axis=1)									# get max rewards (greedy)
 		Qr_next  = Qr_next * cp.asarray(not_done, dtype=cp.float32)		# zero out next rewards for terminal
 		Y_argm   = cp.asarray(rewards, dtype=cp.float32) + gamma*Qr_next
 
-		# Y_t = cp.zeros_like(Qar_next)
-		Y_t[np.arange(len(curr_state)), action_idxs] = Y_argm
-		self.model.train_on_batch(curr_gpu, Y_t)
+		Y_t = cp.copy(Q_curr)
+		Y_t[cp.arange(len(curr_state)), action_idxs_gpu] = Y_argm
 
-
-	def update_target(self):
-		f = io.BytesIO()
-		self.model.save_weights(f)
-		f.seek(0)
-		self.target.load_weights(f)
-		f.close()
+		grads = self.model.del_loss(Q_curr, Y_t)
+		self.model.backprop(grads)
+		self.model.optimizer(self.model.sequence, self.model.learning_rate, self.model.beta)
