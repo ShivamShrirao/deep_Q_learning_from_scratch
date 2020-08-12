@@ -10,6 +10,8 @@ import cupy as cp
 
 from settings import *
 
+## Tanh was changed, overlap and past reward was changed
+
 
 def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model=Sequential()
@@ -23,7 +25,7 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model.add(Dense(256, activation=functions.relu))
 	model.add(Dense(no_of_actions, activation=functions.echo))
 
-	model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.00005)
+	model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.00001)
 	return model
 
 
@@ -39,6 +41,11 @@ class Agent:
 		self.model = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.model.summary()
 
+	def run(self, state):
+		state = state_to_gpu(state)
+		state = cp.expand_dims(state, axis=0)
+		return self.model.predict(state)
+
 
 	def get_action(self, state):
 		if self.epsilon > self.min_epsilon:
@@ -47,9 +54,7 @@ class Agent:
 		if np.random.uniform() <= self.epsilon: # random action with epsilon greedy
 			return np.random.choice(self.actions)
 		else:
-			state = state_to_gpu(state)
-			state = cp.expand_dims(state, axis=0)
-			out = self.model.predict(state)
+			out = self.run(state)
 			return self.actions[cp.argmax(out[0]).item()]
 
 	def train(self, D_exp, batch_size=BATCH_SIZE, gamma=0.99):
