@@ -23,7 +23,7 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model.add(BatchNormalization())
 	model.add(Flatten())
 	model.add(Dense(256, activation=functions.relu))
-	model.add(Dense(no_of_actions, activation=functions.linear))
+	model.add(Dense(no_of_actions, activation=functions.echo))
 
 	model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.00005)
 	return model
