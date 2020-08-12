@@ -7,6 +7,7 @@ from nnet_gpu import optimizers
 from nnet_gpu import functions
 import numpy as np
 import cupy as cp
+import io
 
 from settings import *
 
@@ -58,6 +59,7 @@ class Agent:
 			out = self.run(state)
 			return self.actions[cp.argmax(out[0]).item()]
 
+
 	def train(self, D_exp, batch_size=BATCH_SIZE, gamma=0.95):
 		curr_state, action_idxs, rewards, next_state, not_done = D_exp.sample_random(batch_size)
 		curr_gpu = state_to_gpu(curr_state)
@@ -72,4 +74,10 @@ class Agent:
 		Y_t[np.arange(len(curr_state)), action_idxs] = Y_argm
 		self.model.train_on_batch(curr_gpu, Y_t)
 
-	
+
+	def update_target(self):
+		f = io.BytesIO()
+		self.model.save_weights(f)
+		f.seek(0)
+		self.target.load_weights(f)
+		f.close()
