@@ -61,14 +61,14 @@ class Agent:
 	def train(self, D_exp, batch_size=BATCH_SIZE, gamma=0.95):
 		curr_state, action_idxs, rewards, next_state, not_done = D_exp.sample_random(batch_size)
 		curr_gpu = state_to_gpu(curr_state)
-		# Y_t = self.model.predict(curr_gpu)							# predict reward for current state
+		Y_t = self.target.predict(curr_gpu)								# predict reward for current state
 		
 		Qar_next = self.target.predict(state_to_gpu(next_state))		# predict reward for next state
 		Qr_next  = Qar_next.max(axis=1)									# get max rewards (greedy)
 		Qr_next  = Qr_next * cp.asarray(not_done, dtype=cp.float32)		# zero out next rewards for terminal
 		Y_argm   = cp.asarray(rewards, dtype=cp.float32) + gamma*Qr_next
 
-		Y_t = cp.zeros_like(Qar_next)
+		# Y_t = cp.zeros_like(Qar_next)
 		Y_t[np.arange(len(curr_state)), action_idxs] = Y_argm
 		self.model.train_on_batch(curr_gpu, Y_t)
 
