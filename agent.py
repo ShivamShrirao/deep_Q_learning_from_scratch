@@ -39,6 +39,7 @@ class Agent:
 		self.eps_decay = eps_decay
 		self.actions = actions
 		self.model = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
+		self.target = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.model.summary()
 
 	def run(self, state):
@@ -57,14 +58,14 @@ class Agent:
 			out = self.run(state)
 			return self.actions[cp.argmax(out[0]).item()]
 
-	def train(self, D_exp, batch_size=BATCH_SIZE, gamma=0.99):
+	def train(self, D_exp, batch_size=BATCH_SIZE, gamma=0.95):
 		curr_state, action_idxs, rewards, next_state, not_done = D_exp.sample_random(batch_size)
 		curr_gpu = state_to_gpu(curr_state)
 		# Y_t = self.model.predict(curr_gpu)							# predict reward for current state
 		
-		Qar_next = self.model.predict(state_to_gpu(next_state))		# predict reward for next state
-		Qr_next  = Qar_next.max(axis=1)								# get max rewards (greedy)
-		Qr_next  = Qr_next * cp.asarray(not_done, dtype=cp.float32)	# zero out next rewards for terminal
+		Qar_next = self.target.predict(state_to_gpu(next_state))		# predict reward for next state
+		Qr_next  = Qar_next.max(axis=1)									# get max rewards (greedy)
+		Qr_next  = Qr_next * cp.asarray(not_done, dtype=cp.float32)		# zero out next rewards for terminal
 		Y_argm   = cp.asarray(rewards, dtype=cp.float32) + gamma*Qr_next
 
 		Y_t = cp.zeros_like(Qar_next)
