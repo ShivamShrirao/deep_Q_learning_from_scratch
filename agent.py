@@ -21,7 +21,7 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model.add(Conv2D(num_kernels=128, kernel_size=3, stride=(2, 2), activation=functions.relu))
 	model.add(Flatten())
 	model.add(Dense(512, activation=functions.relu))
-	model.add(Dense(no_of_actions, activation=functions.echo))
+	model.add(Dense(no_of_actions, activation=functions.tanh))
 
 	model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.00005)
 	return model
@@ -66,6 +66,7 @@ class Agent:
 			return np.random.choice(self.actions)
 		else:
 			out = self.predict(state)
+			# print(out)
 			return self.actions[cp.argmax(out[0]).item()]
 
 
@@ -82,7 +83,7 @@ class Agent:
 		Y_t[irange, action_idxs] = Y_argm
 
 		grads = self.model.del_loss(Q_curr, Y_t)
-		grads = grads.clip(-1, 1)
+		# grads = grads.clip(-1, 1)
 		self.model.backprop(grads)
 		self.model.optimizer(self.model.sequence, self.model.learning_rate, self.model.beta)
 		return grads

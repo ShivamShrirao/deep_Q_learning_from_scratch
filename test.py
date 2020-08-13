@@ -15,7 +15,7 @@ agt.model.load_weights("model.w8s")
 env = gym.make('Pong-v0')
 env = FrameStack(env, NFRAMES)      # preprocess and stack frames
 
-for i_episode in range(5):
+for i_episode in range(3):
     observation = env.reset()
     ep_score = 0
     start = time.time()
