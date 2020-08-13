@@ -52,6 +52,7 @@ class Agent:
 		self.target = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.update_target()
 		self.model.summary()
+		self.get_Qtr_next = self.DDQN_Qtr_next
 
 
 	def predict(self, state):
@@ -71,35 +72,13 @@ class Agent:
 			return self.actions[cp.argmax(out[0]).item()]
 
 
-	# https://arxiv.org/pdf/1509.06461.pdf
-	def trainDDQN(self, D_exp, batch_size=BATCH_SIZE, gamma=0.99):
-		curr_state, action_idxs, rewards, next_state, not_done = sample_to_gpu(*D_exp.sample_random(batch_size))
-		arange   = cp.arange(batch_size)						# index range
-
-		Q_curr   = self.model.forward(curr_state)				# predict reward for current state
-
-		Q_next   = self.model.predict(next_state)				# for actions of next state
-		Qt_next  = self.target.predict(next_state)				# predict reward for next state
-		Qtr_next = Qt_next[arange, Q_next.argmax(axis=1)]		# select by actions given by model
-		Y_argm   = rewards + gamma*not_done*Qtr_next
-
-		Y_t = cp.copy(Q_curr)
-		Y_t[arange, action_idxs] = Y_argm
-
-		grads = self.model.del_loss(Q_curr, Y_t)
-		self.model.backprop(grads)
-		self.model.optimizer(self.model.sequence, self.model.learning_rate, self.model.beta)
-
-
-	# https://arxiv.org/pdf/1312.5602.pdf
-	def trainDQN(self, D_exp, batch_size=BATCH_SIZE, gamma=0.99):
+	def train(self, D_exp, batch_size=BATCH_SIZE, gamma=0.99):
 		curr_state, action_idxs, rewards, next_state, not_done = sample_to_gpu(*D_exp.sample_random(batch_size))
 		irange   = cp.arange(batch_size)						# index range
 
 		Q_curr   = self.model.forward(curr_state)				# predict reward for current state
 
-		Qt_next   = self.target.predict(next_state)				# predict reward for next state
-		Qtr_next  = Qt_next.max(axis=1)							# get max rewards (greedy)
+		Qtr_next = self.get_Qtr_next(next_state, irange)
 		Y_argm   = rewards + gamma*not_done*Qtr_next
 
 		Y_t = cp.copy(Q_curr)
@@ -108,6 +87,21 @@ class Agent:
 		grads = self.model.del_loss(Q_curr, Y_t)
 		self.model.backprop(grads)
 		self.model.optimizer(self.model.sequence, self.model.learning_rate, self.model.beta)
+
+
+	# https://arxiv.org/pdf/1509.06461.pdf
+	def DDQN_Qtr_next(self, next_state, irange):
+		Q_next   = self.model.predict(next_state)				# for actions of next state
+		Qt_next  = self.target.predict(next_state)				# predict reward for next state
+		Qtr_next = Qt_next[irange, Q_next.argmax(axis=1)]		# select by actions given by model
+		return Qtr_next
+
+
+	# https://arxiv.org/pdf/1312.5602.pdf
+	def DQN_Qtr_next(self, next_state, irange):
+		Qt_next   = self.target.predict(next_state)				# predict reward for next state
+		Qtr_next  = Qt_next.max(axis=1)							# get max rewards (greedy)
+		return Qtr_next
 
 
 	def update_target(self):
