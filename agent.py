@@ -66,7 +66,7 @@ class Agent:
 			return np.random.choice(self.actions)
 		else:
 			out = self.predict(state)
-			# print(out)
+			print(out)
 			return self.actions[cp.argmax(out[0]).item()]
 
 
@@ -83,7 +83,7 @@ class Agent:
 		Y_t[irange, action_idxs] = Y_argm
 
 		grads = self.model.del_loss(Q_curr, Y_t)
-		# grads = grads.clip(-1, 1)
+		grads = grads.clip(-1, 1)
 		self.model.backprop(grads)
 		self.model.optimizer(self.model.sequence, self.model.learning_rate, self.model.beta)
 		return grads
