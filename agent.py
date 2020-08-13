@@ -7,6 +7,7 @@ from nnet_gpu import optimizers
 from nnet_gpu import functions
 import numpy as np
 import cupy as cp
+import io
 
 from settings import *
 
@@ -22,7 +23,7 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model.add(Conv2D(num_kernels=128, kernel_size=3, stride=(2, 2), activation=functions.relu))
 	model.add(BatchNormalization())
 	model.add(Flatten())
-	model.add(Dense(256, activation=functions.relu))
+	model.add(Dense(512, activation=functions.relu))
 	model.add(Dense(no_of_actions, activation=functions.echo))
 
 	model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.00005)
@@ -32,21 +33,32 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 def state_to_gpu(state):
 	return cp.asarray(state, dtype=cp.float32)/127.5 - 1
 
+def sample_to_gpu(curr_state, action_idxs, rewards, next_state, not_done):
+	curr_gpu 		= state_to_gpu(curr_state)
+	action_idxs_gpu = cp.asarray(action_idxs)
+	rewards_gpu 	= cp.asarray(rewards, dtype=cp.float32)
+	next_gpu 		= state_to_gpu(next_state)
+	not_done_gpu 	= cp.asarray(not_done, dtype=cp.float32)
+	return curr_gpu, action_idxs_gpu, rewards_gpu, next_gpu, not_done_gpu
+
+
 class Agent:
-	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=1e-5):
+	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=5e-6):
 		self.epsilon = epsilon
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
 		self.actions = actions
 		self.model = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.target = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
-		self.model.summary()
 		self.update_target()
+		self.model.summary()
+
 
 	def predict(self, state):
 		state = state_to_gpu(state)
 		state = cp.expand_dims(state, axis=0)
 		return self.model.predict(state)
+
 
 	def get_action(self, state):
 		if self.epsilon > self.min_epsilon:
@@ -58,20 +70,49 @@ class Agent:
 			out = self.predict(state)
 			return self.actions[cp.argmax(out[0]).item()]
 
-	def train(self, D_exp, batch_size=BATCH_SIZE, gamma=0.95):
-		curr_state, action_idxs, rewards, next_state, not_done = D_exp.sample_random(batch_size)
-		action_idxs_gpu = cp.asarray(action_idxs)
-		curr_gpu = state_to_gpu(curr_state)
-		Q_curr   = self.model.forward(curr_gpu)							# predict reward for current state
-		
-		Qar_next = self.target.predict(state_to_gpu(next_state))		# predict reward for next state
-		Qr_next  = Qar_next.max(axis=1)									# get max rewards (greedy)
-		Qr_next  = Qr_next * cp.asarray(not_done, dtype=cp.float32)		# zero out next rewards for terminal
-		Y_argm   = cp.asarray(rewards, dtype=cp.float32) + gamma*Qr_next
+
+	# https://arxiv.org/pdf/1509.06461.pdf
+	def trainDDQN(self, D_exp, batch_size=BATCH_SIZE, gamma=0.99):
+		curr_state, action_idxs, rewards, next_state, not_done = sample_to_gpu(*D_exp.sample_random(batch_size))
+		arange   = cp.arange(batch_size)						# index range
+
+		Q_curr   = self.model.forward(curr_state)				# predict reward for current state
+
+		Q_next   = self.model.predict(next_state)				# for actions of next state
+		Qt_next  = self.target.predict(next_state)				# predict reward for next state
+		Qtr_next = Qt_next[arange, Q_next.argmax(axis=1)]		# select by actions given by model
+		Y_argm   = rewards + gamma*not_done*Qtr_next
 
 		Y_t = cp.copy(Q_curr)
-		Y_t[cp.arange(len(curr_state)), action_idxs_gpu] = Y_argm
+		Y_t[arange, action_idxs] = Y_argm
 
 		grads = self.model.del_loss(Q_curr, Y_t)
 		self.model.backprop(grads)
 		self.model.optimizer(self.model.sequence, self.model.learning_rate, self.model.beta)
+
+
+	# https://arxiv.org/pdf/1312.5602.pdf
+	def trainDQN(self, D_exp, batch_size=BATCH_SIZE, gamma=0.99):
+		curr_state, action_idxs, rewards, next_state, not_done = sample_to_gpu(*D_exp.sample_random(batch_size))
+		irange   = cp.arange(batch_size)						# index range
+
+		Q_curr   = self.model.forward(curr_state)				# predict reward for current state
+
+		Qt_next   = self.target.predict(next_state)				# predict reward for next state
+		Qtr_next  = Qt_next.max(axis=1)							# get max rewards (greedy)
+		Y_argm   = rewards + gamma*not_done*Qtr_next
+
+		Y_t = cp.copy(Q_curr)
+		Y_t[irange, action_idxs] = Y_argm
+
+		grads = self.model.del_loss(Q_curr, Y_t)
+		self.model.backprop(grads)
+		self.model.optimizer(self.model.sequence, self.model.learning_rate, self.model.beta)
+
+
+	def update_target(self):
+		f = io.BytesIO()
+		self.model.save_weights(f)
+		f.seek(0)
+		self.target.load_weights(f)
+		f.close()
