@@ -2,7 +2,7 @@ import sys
 sys.path.append("../dnn_from_scratch")
 
 from nnet_gpu.network import Sequential
-from nnet_gpu.layers import Conv2D,MaxPool,Flatten,Dense,Dropout,BatchNormalization,GlobalAveragePool
+from nnet_gpu.layers import Conv2D,Flatten,Dense,Dropout
 from nnet_gpu import optimizers
 from nnet_gpu import functions
 import numpy as np
@@ -11,17 +11,14 @@ import io
 
 from settings import *
 
-## Tanh was changed, overlap and past reward was changed, try overlap of NFRAMES - 1 or - 2
+## tanh was changed, overlap and past reward was changed, try overlap of NFRAMES - 1 or - 2
 
 
 def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model=Sequential()
 	model.add(Conv2D(num_kernels=32, kernel_size=3, stride=(2, 2), activation=functions.relu, input_shape=input_shape))
-	model.add(BatchNormalization())
 	model.add(Conv2D(num_kernels=64, kernel_size=3, stride=(2, 2), activation=functions.relu))
-	model.add(BatchNormalization())
 	model.add(Conv2D(num_kernels=128, kernel_size=3, stride=(2, 2), activation=functions.relu))
-	model.add(BatchNormalization())
 	model.add(Flatten())
 	model.add(Dense(512, activation=functions.relu))
 	model.add(Dense(no_of_actions, activation=functions.echo))
@@ -85,8 +82,10 @@ class Agent:
 		Y_t[irange, action_idxs] = Y_argm
 
 		grads = self.model.del_loss(Q_curr, Y_t)
+		grads = grads.clip(-1, 1)
 		self.model.backprop(grads)
 		self.model.optimizer(self.model.sequence, self.model.learning_rate, self.model.beta)
+		return grads
 
 
 	# https://arxiv.org/pdf/1509.06461.pdf

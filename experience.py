@@ -4,6 +4,7 @@ from collections import deque
 
 from settings import *
 
+# TODO - Try single memory for current and next states.
 
 class ReplayMemory:
 	def __init__(self, capacity=100000):
