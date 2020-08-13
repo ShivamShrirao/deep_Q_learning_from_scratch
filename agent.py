@@ -99,8 +99,8 @@ class Agent:
 
 	# https://arxiv.org/pdf/1312.5602.pdf
 	def DQN_Qtr_next(self, next_state, irange):
-		Qt_next   = self.target.predict(next_state)				# predict reward for next state
-		Qtr_next  = Qt_next.max(axis=1)							# get max rewards (greedy)
+		Qt_next  = self.target.predict(next_state)				# predict reward for next state
+		Qtr_next = Qt_next.max(axis=1)							# get max rewards (greedy)
 		return Qtr_next
 
 
