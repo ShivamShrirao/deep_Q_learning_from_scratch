@@ -66,7 +66,6 @@ class Agent:
 			return np.random.choice(self.actions)
 		else:
 			out = self.predict(state)
-			# print(out)
 			return self.actions[cp.argmax(out[0]).item()]
 
 
