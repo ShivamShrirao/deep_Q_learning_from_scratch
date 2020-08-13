@@ -9,7 +9,7 @@ from atari_wrappers import *
 
 fps = 60
 
-agt = Agent(actions=[0,2,3], epsilon=1)
+agt = Agent(actions=[0,2,3], epsilon=0)
 agt.model.load_weights("model.w8s")
 
 env = gym.make('Pong-v0')
