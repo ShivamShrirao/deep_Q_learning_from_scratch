@@ -2,6 +2,7 @@ import gym
 import time
 import numpy as np
 import pickle
+import matplotlib.pyplot as plt
 
 from settings import *
 from agent import *
@@ -35,11 +36,15 @@ for i_episode in range(3):
         ep_score += reward
         reward_history.append(reward)
         observation = next_observation
-        time.sleep(1/fps)
+        # time.sleep(1/fps)
         if done:
             break
         print('\r', t, action, ep_score, end='  ')
     print(f"\rEpisode {i_episode+1} finished after {t+1} timesteps, Score: {ep_score}, Epsilon: {agt.epsilon:.6f}, Time: {time.time()-start:.2f}")
+    plt.plot(reward_history, label="Reward History")
+    plt.plot(preds, label="Prediction")
+    plt.legend(loc='lower right')
+    plt.show()
     with open("history.w8s","wb") as f:
         pickle.dump([preds, reward_history], f)
 env.close()
