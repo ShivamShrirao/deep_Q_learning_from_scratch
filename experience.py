@@ -16,7 +16,8 @@ class ReplayMemory:
 		self.idx = 0
 		self.nlap = nlap
 		self.batch_size = BATCH_SIZE
-		self.nxt_end = NFRAMES + self.nlap
+		self.min_idx = NFRAMES - 1
+		self.idx_len = NFRAMES + self.nlap
 		self.lens = self.get_lens(self.batch_size)
 		self.len = 0
 
@@ -30,7 +31,7 @@ class ReplayMemory:
 			self.len += 1
 
 	def get_lens(self, batch_size):
-		lens = np.full(batch_size, self.nxt_end)
+		lens = np.full(batch_size, self.idx_len)
 		np.cumsum(lens, out=lens)
 		return lens
 
@@ -43,11 +44,11 @@ class ReplayMemory:
 		i[self.lens[:-1]] += start[1:]
 		i[self.lens[:-1]] -= end[:-1]
 		np.cumsum(i, out=i)
-		return i.reshape(batch_size, self.nxt_end)
+		return i.reshape(batch_size, self.idx_len)
 
 	def sample_random(self, batch_size=BATCH_SIZE):
-		idxs = np.random.choice(self.len - self.nxt_end, batch_size, replace=False)
-		state_idxs = self.indices(idxs, idxs+self.nxt_end, batch_size)
+		idxs = np.random.choice(range(self.min_idx, self.len - self.nlap), batch_size, replace=False)
+		state_idxs = self.indices(idxs-self.min_idx, idxs+self.nlap, batch_size)
 		states = self.current_state[state_idxs]
 		cur_state = np.moveaxis(states[:,:NFRAMES], 1, -1)
 		nxt_state = np.moveaxis(states[:,self.nlap:], 1, -1)

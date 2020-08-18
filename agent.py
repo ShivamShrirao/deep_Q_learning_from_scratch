@@ -8,10 +8,9 @@ from nnet_gpu import functions
 import numpy as np
 import cupy as cp
 from copy import deepcopy
+import cv2
 
 from settings import *
-
-## tanh was changed, overlap and past reward was changed, try overlap of NFRAMES - 1 or - 2
 
 
 def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
@@ -26,6 +25,10 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.00005)
 	return model
 
+def preproc_obsv(obsv):
+    obsv = cv2.cvtColor(obsv, cv2.COLOR_RGB2GRAY)
+    obsv = obsv[34:194:2,::2]
+    return obsv
 
 def state_to_gpu(state):
 	return cp.asarray(state, dtype=cp.float32)/127.5 - 1
@@ -40,7 +43,7 @@ def sample_to_gpu(curr_state, action_idxs, rewards, next_state, not_done):
 
 
 class Agent:
-	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=1e-6, target_update_thresh=1000):
+	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=1e-6, target_update_thresh=400):
 		self.epsilon = epsilon
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
