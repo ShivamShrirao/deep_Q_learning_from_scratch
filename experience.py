@@ -7,33 +7,51 @@ from settings import *
 # TODO - Try single memory for current and next states.
 
 class ReplayMemory:
-	def __init__(self, capacity=100000):
+	def __init__(self, capacity=1_000_000, nlap=1):
 		self.capacity = capacity
-		self.current_state = deque([], maxlen=self.capacity)
-		self.action_idx = deque([], maxlen=self.capacity)
-		self.reward = deque([], maxlen=self.capacity)
-		self.next_state = deque([], maxlen=self.capacity)
-		self.ndone = deque([], maxlen=self.capacity)
+		self.current_state = np.zeros((capacity,HEIGHT,WIDTH), dtype=np.uint8)
+		self.action_idx = np.zeros(capacity, dtype=np.uint8)
+		self.reward = np.zeros(capacity, dtype=np.uint8)
+		self.ndone = np.zeros(capacity, dtype=np.bool)
+		self.idx = 0
+		self.nlap = nlap
+		self.batch_size = BATCH_SIZE
+		self.nxt_end = NFRAMES + self.nlap
+		self.lens = self.get_lens(self.batch_size)
+		self.len = 0
 
+	def store_transition(self, cur_state, action_idx, reward, done):
+		self.current_state[self.idx] = cur_state
+		self.action_idx[self.idx] = action_idx
+		self.reward[self.idx] = reward
+		self.ndone[self.idx] = not done
+		self.idx = (self.idx + 1) % self.capacity
+		if self.len < self.capacity:
+			self.len += 1
 
-	def store_transition(self, cur_state, action_idx, reward, nxt_state, done):
-		self.current_state.append(cur_state)
-		self.action_idx.append(action_idx)
-		self.reward.append(reward)
-		self.next_state.append(nxt_state)
-		self.ndone.append(not done)
+	def get_lens(self, batch_size):
+		lens = np.full(batch_size, self.nxt_end)
+		np.cumsum(lens, out=lens)
+		return lens
+
+	def indices(self, start, end, batch_size):
+		if batch_size != self.batch_size:
+			self.batch_size = batch_size
+			self.lens = self.get_lens(self.batch_size)
+		i = np.ones(self.lens[-1], dtype=int)
+		i[0] = start[0]
+		i[self.lens[:-1]] += start[1:]
+		i[self.lens[:-1]] -= end[:-1]
+		np.cumsum(i, out=i)
+		return i.reshape(batch_size, self.nxt_end)
 
 	def sample_random(self, batch_size=BATCH_SIZE):
-		idxs = np.random.choice(len(self.ndone), batch_size, replace=False)
-		cur_state=[]
-		action_idx=[]
-		reward=[]
-		nxt_state=[]
-		ndone=[]
-		for j in idxs:
-			cur_state.append(self.current_state[j])
-			action_idx.append(self.action_idx[j])
-			reward.append(self.reward[j])
-			nxt_state.append(self.next_state[j])
-			ndone.append(self.ndone[j])
+		idxs = np.random.choice(self.len - self.nxt_end, batch_size, replace=False)
+		state_idxs = self.indices(idxs, idxs+self.nxt_end, batch_size)
+		states = self.current_state[state_idxs]
+		cur_state = np.moveaxis(states[:,:NFRAMES], 1, -1)
+		nxt_state = np.moveaxis(states[:,self.nlap:], 1, -1)
+		action_idx = self.action_idx[idxs]
+		reward = self.reward[idxs]
+		ndone = self.ndone[idxs]
 		return cur_state, action_idx, reward, nxt_state, ndone

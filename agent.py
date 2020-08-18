@@ -7,7 +7,7 @@ from nnet_gpu import optimizers
 from nnet_gpu import functions
 import numpy as np
 import cupy as cp
-import io
+from copy import deepcopy
 
 from settings import *
 
@@ -40,7 +40,7 @@ def sample_to_gpu(curr_state, action_idxs, rewards, next_state, not_done):
 
 
 class Agent:
-	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=1e-6):
+	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=1e-6, target_update_thresh=1000):
 		self.epsilon = epsilon
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
@@ -48,8 +48,10 @@ class Agent:
 		self.model = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.target = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.update_target()
+		self.target_update_counter = 0
+		self.target_update_thresh = target_update_thresh
 		self.model.summary()
-		self.get_Qtr_next = self.DDQN_Qtr_next
+		self.get_Qtr_next = self.DQN_Qtr_next
 
 
 	def predict(self, state):
@@ -62,7 +64,7 @@ class Agent:
 		if self.epsilon > self.min_epsilon:
 			self.epsilon-= self.eps_decay
 
-		if np.random.uniform() <= self.epsilon: # random action with epsilon greedy
+		if np.random.uniform() <= self.epsilon:					 # random action with epsilon greedy
 			return np.random.choice(self.actions)
 		else:
 			out = self.predict(state)
@@ -85,6 +87,10 @@ class Agent:
 		grads = grads.clip(-1, 1)
 		self.model.backprop(grads)
 		self.model.optimizer(self.model.sequence, self.model.learning_rate, self.model.beta)
+		self.target_update_counter+=1
+		if self.target_update_counter > self.target_update_thresh:
+			self.update_target()
+			self.target_update_counter = 0
 		return grads
 
 
@@ -104,8 +110,4 @@ class Agent:
 
 
 	def update_target(self):
-		f = io.BytesIO()
-		self.model.save_weights(f)
-		f.seek(0)
-		self.target.load_weights(f)
-		f.close()
+		self.target.weights = deepcopy(self.model.weights)

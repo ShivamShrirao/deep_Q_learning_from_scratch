@@ -18,7 +18,9 @@ env = gym.make('Pong-v0')
 env = FrameStack(env, NFRAMES)      # preprocess and stack frames
 
 for i_episode in range(3):
-    observation = env.reset()
+    obinit = env.reset()
+    if not i_episode:
+        observation = obinit
     ep_score = 0
     preds = []
     reward_history = []
@@ -38,13 +40,14 @@ for i_episode in range(3):
         observation = next_observation
         # time.sleep(1/fps)
         if done:
+            print(done)
             break
         print('\r', t, action, ep_score, end='  ')
     print(f"\rEpisode {i_episode+1} finished after {t+1} timesteps, Score: {ep_score}, Epsilon: {agt.epsilon:.6f}, Time: {time.time()-start:.2f}")
-    plt.plot(reward_history, label="Reward History")
-    plt.plot(preds, label="Prediction")
-    plt.legend(loc='lower right')
-    plt.show()
+    # plt.plot(reward_history, label="Reward History")
+    # plt.plot(preds, label="Prediction")
+    # plt.legend(loc='lower right')
+    # plt.show()
     with open("history.w8s","wb") as f:
         pickle.dump([preds, reward_history], f)
 env.close()
