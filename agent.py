@@ -54,20 +54,21 @@ class Agent:
 		self.get_Qtr_next = self.DQN_Qtr_next
 
 
-	def predict(self, state):
-		state = state_to_gpu(state)
+	def predict(self, state_que):
+		state = state_to_gpu(state_que)
+		state = cp.moveaxis(state, 0, -1)
 		state = cp.expand_dims(state, axis=0)
 		return self.model.predict(state)
 
 
-	def get_action(self, state):
+	def get_action(self, state_que):
 		if self.epsilon > self.min_epsilon:
 			self.epsilon-= self.eps_decay
 
 		if np.random.uniform() <= self.epsilon:					 # random action with epsilon greedy
 			return np.random.choice(self.actions)
 		else:
-			out = self.predict(state)
+			out = self.predict(state_que)
 			return self.actions[cp.argmax(out[0]).item()]
 
 
