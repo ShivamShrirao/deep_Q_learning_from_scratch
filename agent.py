@@ -5,6 +5,7 @@ from nnet_gpu.network import Sequential
 from nnet_gpu.layers import Conv2D,Flatten,Dense,Dropout
 from nnet_gpu import optimizers
 from nnet_gpu import functions
+from nnet_gpu.stream_handler import stream_maps
 import numpy as np
 import cupy as cp
 from copy import deepcopy
@@ -55,6 +56,7 @@ class Agent:
 		self.target_update_thresh = target_update_thresh
 		self.model.summary()
 		self.get_Qtr_next = self.DQN_Qtr_next
+		self.stream = stream_maps.get_next_stream()
 
 
 	def predict(self, state_que):
@@ -114,4 +116,5 @@ class Agent:
 
 
 	def update_target(self):
-		self.target.weights = deepcopy(self.model.weights)
+		with self.stream:
+			self.target.weights = deepcopy(self.model.weights)

@@ -48,11 +48,13 @@ class ReplayMemory:
 
 	def sample_random(self, batch_size=BATCH_SIZE):
 		idxs = np.random.choice(range(self.min_idx, self.len - self.nlap), batch_size, replace=False)
+		action_idx = self.action_idx[idxs]
+		reward = self.reward[idxs]
+		ndone = self.ndone[idxs]
+
 		state_idxs = self.indices(idxs-self.min_idx, idxs+self.nlap, batch_size)
 		states = self.current_state[state_idxs]
 		cur_state = np.moveaxis(states[:,:NFRAMES], 1, -1)
 		nxt_state = np.moveaxis(states[:,self.nlap:], 1, -1)
-		action_idx = self.action_idx[idxs]
-		reward = self.reward[idxs]
-		ndone = self.ndone[idxs]
+
 		return cur_state, action_idx, reward, nxt_state, ndone
