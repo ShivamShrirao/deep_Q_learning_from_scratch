@@ -51,13 +51,12 @@ class Agent:
 		self.actions = actions
 		self.model = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.target = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
-		self.update_target()
 		self.target_update_counter = 0
 		self.target_update_thresh = target_update_thresh
 		self.model.summary()
 		self.get_Qtr_next = self.DQN_Qtr_next
 		self.stream = stream_maps.get_next_stream()
-
+		self.update_target()
 
 	def predict(self, state_que):
 		state = state_to_gpu(state_que)
