@@ -10,8 +10,8 @@ class ReplayMemory:
 	def __init__(self, capacity=1_000_000, nlap=1):
 		self.capacity = capacity
 		self.current_state = np.zeros((capacity,HEIGHT,WIDTH), dtype=np.uint8)
-		self.action_idx = np.zeros(capacity, dtype=np.uint8)
-		self.reward = np.zeros(capacity, dtype=np.uint8)
+		self.action_idx = np.zeros(capacity, dtype=np.int8)
+		self.reward = np.zeros(capacity, dtype=np.int8)
 		self.ndone = np.zeros(capacity, dtype=np.bool)
 		self.idx = 0
 		self.nlap = nlap
