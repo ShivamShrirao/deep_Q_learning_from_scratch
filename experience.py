@@ -1,6 +1,7 @@
 import numpy as np
 import cupy as cp
 from collections import deque
+from numpy.random import default_rng
 
 from settings import *
 
@@ -14,6 +15,7 @@ class ReplayMemory:
 		self.reward = np.zeros(capacity, dtype=np.int8)
 		self.ndone = np.zeros(capacity, dtype=np.bool)
 		self.idx = 0
+		self.rng = default_rng()
 		self.nlap = nlap
 		self.batch_size = BATCH_SIZE
 		self.min_idx = NFRAMES - 1
@@ -47,7 +49,7 @@ class ReplayMemory:
 		return i.reshape(batch_size, self.idx_len)
 
 	def sample_random(self, batch_size=BATCH_SIZE):
-		idxs = np.random.choice(range(self.min_idx, self.len - self.nlap), batch_size, replace=False)
+		idxs = self.rng.choice(np.arange(self.min_idx, self.len - self.nlap), size=batch_size, replace=False)
 		action_idx = self.action_idx[idxs]
 		reward = self.reward[idxs]
 		ndone = self.ndone[idxs]
