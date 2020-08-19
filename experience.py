@@ -49,7 +49,7 @@ class ReplayMemory:
 		return i.reshape(batch_size, self.idx_len)
 
 	def sample_random(self, batch_size=BATCH_SIZE):
-		idxs = self.rng.choice(np.arange(self.min_idx, self.len - self.nlap), size=batch_size, replace=False)
+		idxs = self.rng.choice(self.len - self.min_idx - self.nlap, size=batch_size, replace=False) + self.min_idx
 		action_idx = self.action_idx[idxs]
 		reward = self.reward[idxs]
 		ndone = self.ndone[idxs]
