@@ -44,7 +44,7 @@ def sample_to_gpu(curr_state, action_idxs, rewards, next_state, not_done):
 
 
 class Agent:
-	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=1e-6, target_update_thresh=400):
+	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=2e-6, target_update_thresh=1000):
 		self.epsilon = epsilon
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
