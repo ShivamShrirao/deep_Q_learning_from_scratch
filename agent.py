@@ -23,7 +23,7 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model.add(Dense(512, activation=functions.relu))
 	model.add(Dense(no_of_actions, activation=functions.tanh))
 
-	model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.00005)
+	model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.0001)
 	return model
 
 def preproc_obsv(obsv):
