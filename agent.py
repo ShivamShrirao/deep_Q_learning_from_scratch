@@ -1,6 +1,3 @@
-import sys
-sys.path.append("../dnn_from_scratch")
-
 from nnet_gpu.network import Sequential
 from nnet_gpu.layers import Conv2D,Flatten,Dense,Dropout
 from nnet_gpu import optimizers
