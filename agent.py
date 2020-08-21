@@ -18,7 +18,7 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model.add(Conv2D(num_kernels=128, kernel_size=3, stride=(2, 2), activation=functions.relu))
 	model.add(Flatten())
 	model.add(Dense(512, activation=functions.relu))
-	model.add(Dense(no_of_actions, activation=functions.tanh))
+	model.add(Dense(no_of_actions, activation=functions.echo))
 
 	model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.0001)
 	return model
@@ -41,11 +41,12 @@ def sample_to_gpu(curr_state, action_idxs, rewards, next_state, not_done):
 
 
 class Agent:
-	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=2e-6, target_update_thresh=1000):
+	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=2e-6, target_update_thresh=1000, grad_clip=True):
 		self.epsilon = epsilon
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
 		self.actions = actions
+		self.grad_clip = grad_clip
 		self.model = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.target = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.target_update_counter = 0
@@ -86,7 +87,8 @@ class Agent:
 		Y_t[irange, action_idxs] = Y_argm
 
 		grads = self.model.del_loss(Q_curr, Y_t)
-		grads = grads.clip(-1, 1)
+		if self.grad_clip:
+			grads = grads.clip(-1, 1)
 		self.model.backprop(grads)
 		self.model.optimizer(self.model.sequence, self.model.learning_rate, self.model.beta)
 		self.target_update_counter+=1
