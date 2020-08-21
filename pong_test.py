@@ -11,10 +11,11 @@ from agent import *
 fps = 144
 
 agt = Agent(actions=[0,2,3], epsilon=0)
-agt.model.load_weights("model.w8s")
+agt.model.load_weights("pong.w8s")
 
 env = gym.make('Pong-v0').env
 
+# env = wrappers.Monitor(env, '/content/videos/' + str(time.time()) + '/')
 for i_episode in range(3):
     obinit = env.reset()
     if not i_episode:
@@ -34,7 +35,7 @@ for i_episode in range(3):
         state = preproc_obsv(observation)
         state_que.append(state)
         # action = agt.get_action(state_que)
-        out = agt.predict(observation)
+        out = agt.predict(state_que)
         pidx = cp.argmax(out[0]).item()
         preds.append(out[0][pidx].item())
         action = agt.actions[pidx]

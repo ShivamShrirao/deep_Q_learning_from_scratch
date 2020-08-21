@@ -17,7 +17,7 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model.add(Conv2D(num_kernels=64, kernel_size=3, stride=(2, 2), activation=functions.relu))
 	model.add(Conv2D(num_kernels=128, kernel_size=3, stride=(2, 2), activation=functions.relu))
 	model.add(Flatten())
-	model.add(Dense(512, activation=functions.relu))
+	model.add(Dense(256, activation=functions.relu))
 	model.add(Dense(no_of_actions, activation=functions.echo))
 
 	model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.0001)
