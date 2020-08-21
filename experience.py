@@ -8,7 +8,7 @@ from settings import *
 # TODO - Try single memory for current and next states.
 
 class ReplayMemory:
-	def __init__(self, capacity=1_000_000, nlap=2):
+	def __init__(self, capacity=1_000_000, nlap=1):
 		self.capacity = capacity
 		self.current_state = np.zeros((capacity,HEIGHT,WIDTH), dtype=np.uint8)
 		self.action_idx = np.zeros(capacity, dtype=np.int8)

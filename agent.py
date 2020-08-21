@@ -41,12 +41,13 @@ def sample_to_gpu(curr_state, action_idxs, rewards, next_state, not_done):
 
 
 class Agent:
-	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=2e-6, target_update_thresh=1000, grad_clip=True):
+	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=2e-6, target_update_thresh=1000, grad_clip=True, continue_decay=True):
 		self.epsilon = epsilon
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
 		self.actions = actions
 		self.grad_clip = grad_clip
+		self.continue_decay = continue_decay
 		self.model = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.target = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.target_update_counter = 0
@@ -66,6 +67,10 @@ class Agent:
 	def get_action(self, state_que):
 		if self.epsilon > self.min_epsilon:
 			self.epsilon-= self.eps_decay
+		else:
+			if self.continue_decay:
+				self.min_epsilon/=10
+				self.eps_decay/=10
 
 		if np.random.uniform() <= self.epsilon:					 # random action with epsilon greedy
 			return np.random.choice(self.actions)

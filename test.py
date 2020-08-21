@@ -13,7 +13,7 @@ fps = 144
 agt = Agent(actions=[0,2,3], epsilon=0)
 agt.model.load_weights("model.w8s")
 
-env = gym.make('Pong-v0')
+env = gym.make('Pong-v0').env
 
 for i_episode in range(3):
     obinit = env.reset()

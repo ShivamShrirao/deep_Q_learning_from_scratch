@@ -2,9 +2,8 @@ import gym
 import numpy as np
 import time
 from gym.utils.play import play
-import matplotlib.pyplot as plt
 
-env = gym.make('Breakout-v0')
+env = gym.make('Breakout-v4').env
 print(env.unwrapped.get_action_meanings())
 
 # play(env)
@@ -12,7 +11,7 @@ print(env.unwrapped.get_action_meanings())
 fps = 60
 info = {}
 
-for i_episode in range(1):
+for i_episode in range(2):
     observation = env.reset()
     lives = 5
     fire = True
@@ -26,7 +25,7 @@ for i_episode in range(1):
             action = 1
             fire = False
         else:
-            action = env.action_space.sample()
+            action = np.random.choice([0,2,3])
         next_observation, reward, done, info = env.step(action)
         if lives != info['ale.lives']:
             lives = info['ale.lives']
@@ -34,11 +33,7 @@ for i_episode in range(1):
             fire = True
         ep_score += reward
         observation = next_observation
-        state = observation[34:194:2,::2]#[32:197:2,8:152:2]
-        print(state.shape)
-        plt.imshow(state)
-        plt.show()
-        time.sleep(1/fps)
+        # time.sleep(1/fps)
         print('\r', t, action, ep_score, reward, info['ale.lives'], end='  ')
         if done:
             break
