@@ -1,7 +1,3 @@
-from nnet_gpu.network import Sequential
-from nnet_gpu.layers import Conv2D,Flatten,Dense,Dropout
-from nnet_gpu import optimizers
-from nnet_gpu import functions
 from nnet_gpu.stream_handler import stream_maps
 import numpy as np
 import cupy as cp
