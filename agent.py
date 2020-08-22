@@ -10,24 +10,6 @@ import cv2
 
 from settings import *
 
-
-def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
-	model=Sequential()
-	model.add(Conv2D(num_kernels=32, kernel_size=3, stride=(2, 2), activation=functions.relu, input_shape=input_shape))
-	model.add(Conv2D(num_kernels=64, kernel_size=3, stride=(2, 2), activation=functions.relu))
-	model.add(Conv2D(num_kernels=128, kernel_size=3, stride=(2, 2), activation=functions.relu))
-	model.add(Flatten())
-	model.add(Dense(256, activation=functions.relu))
-	model.add(Dense(no_of_actions, activation=functions.echo))
-
-	model.compile(optimizer=optimizers.adam, loss=functions.mean_squared_error, learning_rate=0.0001)
-	return model
-
-def preproc_obsv(obsv):
-    obsv = cv2.cvtColor(obsv, cv2.COLOR_RGB2GRAY)
-    obsv = obsv[34:194:2,::2]
-    return obsv
-
 def state_to_gpu(state):
 	return cp.asarray(state, dtype=cp.float32)/127.5 - 1
 
@@ -48,13 +30,9 @@ class BaseAgent:
 		self.actions = actions
 		self.grad_clip = grad_clip
 		self.continue_decay = continue_decay
-		self.model = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
-		self.target = get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=len(self.actions))
 		self.target_update_counter = 0
 		self.target_update_thresh = target_update_thresh
-		self.model.summary()
 		self.stream = stream_maps.get_next_stream()
-		self.update_target()
 
 	def predict(self, state_que):
 		state = state_to_gpu(state_que)
