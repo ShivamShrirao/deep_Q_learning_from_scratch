@@ -40,7 +40,7 @@ def sample_to_gpu(curr_state, action_idxs, rewards, next_state, not_done):
 	return curr_gpu, action_idxs_gpu, rewards_gpu, next_gpu, not_done_gpu
 
 
-class Agent:
+class BaseAgent:
 	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=2e-6, target_update_thresh=1000, grad_clip=True, continue_decay=True):
 		self.epsilon = epsilon
 		self.min_epsilon = min_epsilon
@@ -53,7 +53,6 @@ class Agent:
 		self.target_update_counter = 0
 		self.target_update_thresh = target_update_thresh
 		self.model.summary()
-		self.get_Qtr_next = self.DQN_Qtr_next
 		self.stream = stream_maps.get_next_stream()
 		self.update_target()
 
@@ -85,7 +84,7 @@ class Agent:
 
 		Q_curr   = self.model.forward(curr_state)				# predict reward for current state
 
-		Qtr_next = self.get_Qtr_next(next_state, irange)
+		Qtr_next = self.get_Qtr_next(next_state, irange)		# Get Q target value for next state
 		Y_argm   = rewards + gamma*not_done*Qtr_next
 
 		Y_t = cp.copy(Q_curr)
@@ -103,21 +102,29 @@ class Agent:
 		return grads
 
 
-	# https://arxiv.org/pdf/1509.06461.pdf
-	def DDQN_Qtr_next(self, next_state, irange):
-		Q_next   = self.model.predict(next_state)				# for actions of next state
-		Qt_next  = self.target.predict(next_state)				# predict reward for next state
-		Qtr_next = Qt_next[irange, Q_next.argmax(axis=1)]		# select by actions given by model
-		return Qtr_next
+	def update_target(self):
+		with self.stream:
+			self.target.weights = deepcopy(self.model.weights)
 
 
-	# https://arxiv.org/pdf/1312.5602.pdf
-	def DQN_Qtr_next(self, next_state, irange):
+# https://arxiv.org/pdf/1312.5602.pdf
+class DQN_Agent(BaseAgent):
+	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=2e-6, target_update_thresh=1000, grad_clip=True, continue_decay=True):
+		super().__init__(actions=actions, epsilon=epsilon, min_epsilon=min_epsilon, eps_decay=eps_decay, target_update_thresh=target_update_thresh, grad_clip=grad_clip, continue_decay=continue_decay)
+
+	def get_Qtr_next(self, next_state, irange):
 		Qt_next  = self.target.predict(next_state)				# predict reward for next state
 		Qtr_next = Qt_next.max(axis=1)							# get max rewards (greedy)
 		return Qtr_next
 
 
-	def update_target(self):
-		with self.stream:
-			self.target.weights = deepcopy(self.model.weights)
+# https://arxiv.org/pdf/1509.06461.pdf
+class DDQN_Agent(BaseAgent):
+	def __init__(self, actions=[0,2,3], epsilon=1, min_epsilon=0.1, eps_decay=2e-6, target_update_thresh=1000, grad_clip=True, continue_decay=True):
+		super().__init__(actions=actions, epsilon=epsilon, min_epsilon=min_epsilon, eps_decay=eps_decay, target_update_thresh=target_update_thresh, grad_clip=grad_clip, continue_decay=continue_decay)
+
+	def get_Qtr_next(self, next_state, irange):
+		Q_next   = self.model.predict(next_state)				# for actions of next state
+		Qt_next  = self.target.predict(next_state)				# predict reward for next state
+		Qtr_next = Qt_next[irange, Q_next.argmax(axis=1)]		# select by actions given by model(online network)
+		return Qtr_next
