@@ -56,7 +56,7 @@ class BaseAgent:
 		curr_state, action_idxs, rewards, next_state, not_done = sample_to_gpu(*D_exp.sample_random(batch_size))
 		irange   = cp.arange(batch_size)						# index range
 
-		Q_curr   = self.model.forward(curr_state)				# predict reward for current state
+		Q_curr   = self.model.forward(curr_state, training=True)# predict reward for current state
 
 		Qtr_next = self.get_Qtr_next(next_state, irange)		# Get Q target value for next state
 		Y_argm   = rewards + gamma*not_done*Qtr_next
