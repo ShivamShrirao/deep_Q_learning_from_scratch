@@ -18,7 +18,7 @@ def get_model(input_shape=(HEIGHT,WIDTH,NFRAMES), no_of_actions=3):
 	model.add(tf.keras.layers.Dense(256, activation='relu'))
 	model.add(tf.keras.layers.Dense(no_of_actions, activation='linear'))
 
-	model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.00005), loss='mse', metrics=['accuracy'])
+	model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.0005), loss='mse', metrics=['accuracy'])
 	return model
 
 
