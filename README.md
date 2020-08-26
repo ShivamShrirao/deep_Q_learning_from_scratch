@@ -11,7 +11,7 @@ Breakout                        |     Pong
 The agent has learned the mechanics of the game, formed a few strategies and is able to consistently score good points.
 
 ## Actual Reward v/s Q Prediction for breakout
-![RewardVprediction](/pics/Figure_5.png)
+![RewardVprediction](/pics/Figure_breakout.png)
 
 Got inspiration from watching this video https://youtu.be/rFwQDDbYTm4 and read the paper (https://arxiv.org/pdf/1312.5602.pdf).
 Implemented it from understanding of paper and network is in my own library. https://github.com/ShivamShrirao/dnn_from_scratch
