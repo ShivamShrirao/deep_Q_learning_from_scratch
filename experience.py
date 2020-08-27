@@ -5,7 +5,6 @@ from numpy.random import default_rng
 
 from settings import *
 
-# TODO - Try single memory for current and next states.
 
 class ReplayMemory:
 	def __init__(self, capacity=1_000_000, nlap=1, height=HEIGHT, width=WIDTH, nframes=NFRAMES):

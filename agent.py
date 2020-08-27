@@ -24,13 +24,13 @@ class BaseAgent:
 		self.min_epsilon = min_epsilon
 		self.eps_decay = eps_decay
 		self.actions = actions
-		self.grad_clip = grad_clip
+		self.grad_clip = grad_clip								# whether to clip gradients
 		self.continue_decay = continue_decay
 		self.target_update_counter = 0
 		self.target_update_thresh = target_update_thresh
 		self.stream = stream_maps.get_next_stream()
 
-	def predict(self, state_que):
+	def predict(self, state_que):								# input the observations of length NFRAMES
 		state = state_to_gpu(state_que)
 		state = cp.moveaxis(state, 0, -1)
 		state = cp.expand_dims(state, axis=0)
@@ -39,13 +39,13 @@ class BaseAgent:
 
 	def get_action(self, state_que):
 		if self.epsilon > self.min_epsilon:
-			self.epsilon-= self.eps_decay
+			self.epsilon-= self.eps_decay						# decay the epsilon
 		else:
 			if self.continue_decay:
 				self.min_epsilon/=10
 				self.eps_decay/=10
 
-		if np.random.uniform() <= self.epsilon:					 # random action with epsilon greedy
+		if np.random.uniform() <= self.epsilon:					# random action with epsilon greedy
 			return np.random.choice(self.actions)
 		else:
 			out = self.predict(state_que)
@@ -62,16 +62,16 @@ class BaseAgent:
 		Y_argm   = rewards + gamma*not_done*Qtr_next
 
 		Y_t = cp.copy(Q_curr)
-		Y_t[irange, action_idxs] = Y_argm
+		Y_t[irange, action_idxs] = Y_argm						# set the target values for actions taken
 
-		grads = self.model.del_loss(Q_curr, Y_t)
+		grads = self.model.del_loss(Q_curr, Y_t)				# calculate gradients
 		if self.grad_clip:
 			grads = grads.clip(-1, 1)
-		self.model.backprop(grads)
-		self.model.optimizer(self.model.sequence, self.model.learning_rate, self.model.beta)
+		self.model.backprop(grads)								# backprop
+		self.model.optimizer(self.model.sequence, self.model.learning_rate, self.model.beta)	# update weights
 		self.target_update_counter+=1
 		if self.target_update_counter > self.target_update_thresh:
-			self.update_target()
+			self.update_target()								# update target network weights
 			self.target_update_counter = 0
 		return grads
 
